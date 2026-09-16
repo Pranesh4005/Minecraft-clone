@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rise Up Style Game</title>
+<style>
+body {
+margin: 0;
+background: #111;
+display: flex;
+justify-content: center;
+align-items: center;
+height: 100vh;
+overflow: hidden;
+font-family: sans-serif;
+color: white;
+}
+canvas {
+background: #222;
+box-shadow: 0 0 20px rgba(0,0,0,0.8);
+cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let balloon = {
+x: canvas.width / 2,
+y: canvas.height - 100,
+radius: 20,
+color: '#ff4757'
+};
+
+let shield = {
+x: canvas.width / 2,
+y: canvas.height - 120,
+width: 70,
+height: 12,
+color: '#2ed573'
+};
+
+let obstacles = [];
+let score = 0;
+let isGameOver = false;
+
+// Track mouse or touch position to move the shield
+canvas.addEventListener('mousemove', (e) => {
+const rect = canvas.getBoundingClientRect();
+shield.x = e.clientX - rect.left;
+});
+
+canvas.addEventListener('touchmove', (e) => {
+const rect = canvas.getBoundingClientRect();
+if (e.touches.length > 0) {
+shield.x = e.touches[0].clientX - rect.left;
+}
+});
+
+function spawnObstacle() {
+const size = Math.random() * 40 + 20;
+obstacles.push({
+x: Math.random() * (canvas.width - size),
+y: -50,
+width: size,
+height: 20,
+speed: Math.random() * 2 + 2,
+color: '#1e90ff'
+});
+}
+
+function update() {
+if (isGameOver) return;
+
+// Move obstacles down (simulating balloon rising)
+obstacles.forEach(obs => {
+obs.y += obs.speed;
+
+// Check collision with shield
+if (
+obs.x < shield.x + shield.width / 2 &&
+obs.x + obs.width > shield.x - shield.width / 2 &&
+obs.y < shield.y + shield.height / 2 &&
+obs.y + obs.height > shield.y - shield.height / 2
+) {
+// Bounce obstacle away
+obs.speed = -obs.speed;
+score += 10;
+}
+
+// Check collision with balloon
+let bDistX = Math.abs(balloon.x - (obs.x + obs.width / 2));
+let bDistY = Math.abs(balloon.y - (obs.y + obs.height / 2));
+if (bDistX < balloon.radius + obs.width / 2 && bDistY < balloon.radius + obs.height / 2) {
+isGameOver = true;
+}
+});
+
+// Remove off-screen obstacles
+obstacles = obstacles.filter(obs => obs.y < canvas.height + 50 && obs.y > -100);
+
+// Randomly spawn new obstacles
+if (Math.random() < 0.03) {
+spawnObstacle();
+}
+}
+
+function draw() {
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+// Draw Balloon
+ctx.beginPath();
+ctx.arc(balloon.x, balloon.y, balloon.radius, 0, Math.PI * 2);
+ctx.fillStyle = balloon.color;
+ctx.fill();
+ctx.closePath();
+
+// Draw Shield
+ctx.fillStyle = shield.color;
+ctx.fillRect(shield.x - shield.width / 2, shield.y - shield.height / 2, shield.width, shield.height);
+
+// Draw Obstacles
+obstacles.forEach(obs => {
+ctx.fillStyle = obs.color;
+ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+});
+
+// Draw Score
+ctx.fillStyle = '#fff';
+ctx.font = '18px sans-serif';
+ctx.fillText('Score: ' + score, 20, 30);
+
+if (isGameOver) {
+ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#ff4757';
+ctx.font = '30px sans-serif';
+ctx.textAlign = 'center';
+ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+ctx.fillStyle = '#fff';
+ctx.font = '16px sans-serif';
+ctx.fillText('Refresh to play again', canvas.width / 2, canvas.height / 2 + 40);
+}
+}
+
+function loop() {
+update();
+draw();
+requestAnimationFrame(loop);
+}
+
+setInterval(spawnObstacle, 1500);
+loop();
+</script>
+
+</body>
+</html>
